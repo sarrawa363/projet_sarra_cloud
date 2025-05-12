@@ -6,8 +6,8 @@
   "scripts": {
     "test": "echo \"No tests specified\" && exit 0",
     "dev": "nodemon server.js",
-    "build": "npm install && npm run build-frontend",
-    "build-frontend": "npm install && npm run build"
+    "build": "npm run build-frontend",
+    "build-frontend": "vite build"
   },
   "keywords": [],
   "author": "",
