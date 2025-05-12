@@ -4,9 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"No tests specified\" && exit 0",
-    "dev": "nodemon server.js",
-    "build": "npm run build-frontend"
+    "start": "node src/app.js"
   },
   "keywords": [],
   "author": "",
