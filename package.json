@@ -7,7 +7,7 @@
     "test": "echo \"No tests specified\" && exit 0",
     "dev": "nodemon server.js",
     "build": "npm install && npm run build-frontend",
-    "build-frontend": "cd client && npm install && npm run build"
+    "build-frontend": "npm install && npm run build"
   },
   "keywords": [],
   "author": "",
