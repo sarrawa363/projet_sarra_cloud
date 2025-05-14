@@ -6,10 +6,9 @@ const morgan = require('morgan');
 const path = require('path');
 require('dotenv').config();
 
-const { initDb } = require('./config/db');
-const itemRoutes = require('./routes/itemRoutes');
+const { initDb, db } = require('./config/db');
 
-// Initialisation de l'application Express
+// Routes API personnalisées
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -20,49 +19,57 @@ app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Servir les fichiers statiques
+// Fichiers statiques
 app.use(express.static(path.join(__dirname, '../public')));
 
-// Routes API
-app.use('/api/items', itemRoutes);
+// API : Liste des items
+app.get('/api/items', (req, res) => {
+  db.all('SELECT * FROM items ORDER BY created_at DESC', [], (err, rows) => {
+    if (err) {
+      console.error('Erreur lors de la récupération des items:', err.message);
+      res.status(500).json({ error: 'Erreur serveur' });
+    } else {
+      res.json(rows);
+    }
+  });
+});
 
-// Route racine pour servir l'application frontend
+// API : Ajouter un item
+app.post('/api/items', (req, res) => {
+  const { name, description } = req.body;
+  db.run('INSERT INTO items (name, description) VALUES (?, ?)', [name, description], function(err) {
+    if (err) {
+      console.error('Erreur lors de l’ajout de l’item:', err.message);
+      res.status(500).json({ error: 'Erreur serveur' });
+    } else {
+      res.status(201).json({ id: this.lastID, name, description });
+    }
+  });
+});
+
+// Page d'accueil
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
-// Route pour vérifier l'état de l'API
+// Vérification de l’état de l’API
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date() });
 });
 
-// Gestion des erreurs 404
-app.use((req, res, next) => {
+// 404
+app.use((req, res) => {
   res.status(404).json({ message: 'Route non trouvée' });
 });
 
-// Gestion des erreurs globales
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ message: 'Erreur interne du serveur', error: err.message });
-});
-
-// Démarrage du serveur
+// Lancement du serveur
 const startServer = async () => {
-  try {
-    // Initialiser la base de données
-    await initDb();
-    
-    // Démarrer le serveur
-    app.listen(PORT, () => {
-      console.log(`Serveur en écoute sur le port ${PORT}`);
-    });
-  } catch (error) {
-    console.error('Erreur lors du démarrage du serveur:', error);
-    process.exit(1);
-  }
+  initDb();
+  app.listen(PORT, () => {
+    console.log(`✅ Serveur en ligne sur le port ${PORT}`);
+  });
 };
 
 startServer();
 
-module.exports = app; // Pour les tests
+module.exports = app;

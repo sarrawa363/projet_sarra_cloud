@@ -1,39 +1,36 @@
-const { Pool } = require('pg');
-require('dotenv').config();
+const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
 
-// Configuration de la connexion à PostgreSQL
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-});
+// Chemin absolu vers la base (en mémoire ou fichier temporaire dans /tmp)
+const dbPath = process.env.NODE_ENV === 'production'
+  ? '/tmp/database.sqlite'  // recommandé par Render
+  : path.join(__dirname, '../dev.sqlite');
 
-// Test de la connexion
-pool.on('connect', () => {
-  console.log('Connecté à la base de données PostgreSQL');
-});
-
-pool.on('error', (err) => {
-  console.error('Erreur de connexion à PostgreSQL', err);
-  process.exit(-1);
-});
-
-// Fonction d'initialisation de la base de données
-const initDb = async () => {
-  try {
-    // Création de la table items si elle n'existe pas
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS items (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(100) NOT NULL,
-        description TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-    console.log('Base de données initialisée avec succès');
-  } catch (error) {
-    console.error('Erreur lors de l\'initialisation de la base de données:', error);
-    throw error;
+const db = new sqlite3.Database(dbPath, (err) => {
+  if (err) {
+    console.error('Erreur lors de l’ouverture de la base SQLite:', err.message);
+  } else {
+    console.log(`Connecté à la base SQLite: ${dbPath}`);
   }
+});
+
+const initDb = () => {
+  db.serialize(() => {
+    db.run(`
+      CREATE TABLE IF NOT EXISTS items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        description TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    `, (err) => {
+      if (err) {
+        console.error('Erreur lors de la création de la table:', err.message);
+      } else {
+        console.log('Base de données initialisée avec succès.');
+      }
+    });
+  });
 };
 
-module.exports = { pool, initDb };
+module.exports = { db, initDb };
